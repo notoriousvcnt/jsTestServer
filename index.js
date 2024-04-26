@@ -8,6 +8,7 @@ let context = new WAContext();
 
 const setup = async () => {
 
+    let button = document.getElementById("button");
     //fetch patcher
     let rawPatcher = await fetch("export/patch.export.json");
     let patcher = await rawPatcher.json();
