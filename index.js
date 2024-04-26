@@ -21,12 +21,13 @@ const setup = async () => {
         context.resume();
     }
     
-    // Optionally, you can create a gain node to control the level of your RNBO device
-    const gainNode = context.createGain();
-    gainNode.connect(context.destination);
-    // Assuming you've created a device already, you can connect its node to other web audio nodes
-    device.node.connect(gainNode);
+    // // Optionally, you can create a gain node to control the level of your RNBO device
+    // const gainNode = context.createGain();
+    // gainNode.connect(context.destination);
+    // // Assuming you've created a device already, you can connect its node to other web audio nodes
+    // device.node.connect(gainNode);
 
+    device.node.connect(context.destination);
     //connect audio input
     const handleSuccess = (stream) => {
         const source = context.createMediaStreamSource(stream);
@@ -34,13 +35,38 @@ const setup = async () => {
     }
 
     navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(handleSuccess);
+    let max = -1000;
+    let min = 0;
+    let pmin = document.getElementById("min");
+    
+    let pmax = document.getElementById("max");
+    
+    device.messageEvent.subscribe((ev) => {
+        if (ev.tag === "out4"){
+            let realLevel = ev.payload;
+            if (realLevel > max){
+                max = realLevel;
+            }
 
-    // device.messageEvent.subscribe((ev) => {
-    //     if (ev.tag === "out3"){
-    //         console.log(`${ev.payload}`);
-    //     }
-    // });
- 
+            if (realLevel < min && realLevel > -100){
+                min = realLevel;
+            }
+
+            pmin.textContent = min;
+            pmax.textContent = max;
+            console.log(ev.payload)
+        }
+
+        if (ev.tag === "out3"){
+            let level = ev.payload;
+            //console.log(level);
+            let color = `hsl(${level}, 33%, 25%)`;
+            //console.log(color);
+            document.body.style.backgroundColor = color;
+        
+        }
+    });
+
 }
 
 function makeSliders(device) {
