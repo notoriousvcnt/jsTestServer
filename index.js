@@ -8,7 +8,6 @@ let context = new WAContext();
 
 const setup = async () => {
 
-    let button = document.getElementById("button");
     //fetch patcher
     let rawPatcher = await fetch("export/patch.export.json");
     let patcher = await rawPatcher.json();
@@ -18,55 +17,54 @@ const setup = async () => {
 
     makeSliders(device);
 
+    //loading dependencies
+    let dependencies = await fetch("export/dependencies.json");
+    dependencies = await dependencies.json();
+
+    // Load the dependencies into the device
+    const results = await device.loadDataBufferDependencies(dependencies);
+    results.forEach(result => {
+    if (result.type === "success") {
+        console.log(`Successfully loaded buffer with id ${result.id}`);
+    } else {
+        console.log(`Failed to load buffer with id ${result.id}, ${result.error}`);
+    }
+    });
+
     document.body.onclick = () => {
         context.resume();
-    }
-    
-    // // Optionally, you can create a gain node to control the level of your RNBO device
-    // const gainNode = context.createGain();
-    // gainNode.connect(context.destination);
-    // // Assuming you've created a device already, you can connect its node to other web audio nodes
-    // device.node.connect(gainNode);
-
-    device.node.connect(context.destination);
-    //connect audio input
-    const handleSuccess = (stream) => {
-        const source = context.createMediaStreamSource(stream);
-        source.connect(device.node);
-    }
-
-    navigator.mediaDevices.getUserMedia({audio: true, video: false}).then(handleSuccess);
-    let max = -1000;
-    let min = 0;
-    let pmin = document.getElementById("min");
-    
-    let pmax = document.getElementById("max");
-    
-    device.messageEvent.subscribe((ev) => {
-        if (ev.tag === "out4"){
-            let realLevel = ev.payload;
-            if (realLevel > max){
-                max = realLevel;
-            }
-
-            if (realLevel < min && realLevel > -100){
-                min = realLevel;
-            }
-
-            pmin.textContent = min;
-            pmax.textContent = max;
-            console.log(ev.payload)
-        }
-
-        if (ev.tag === "out3"){
-            let level = ev.payload;
-            //console.log(level);
-            let color = `hsl(${level}, 33%, 25%)`;
-            //console.log(color);
-            document.body.style.backgroundColor = color;
         
-        }
+    }
+
+    const play = new MessageEvent(TimeNow, "in2", [1]);
+    const bang = new MessageEvent(TimeNow, "in1", [1]);
+    device.scheduleEvent(play);
+    device.scheduleEvent(bang);
+
+    let startButton = document.getElementById("start");
+    let pauseButton = document.getElementById("pause");
+    let stopButton = document.getElementById("stop");
+
+    startButton.addEventListener("click", () =>{
+        const play = new MessageEvent(TimeNow, "in2", [1]);
+        const bang = new MessageEvent(TimeNow, "in1", [1]);
+        device.scheduleEvent(play);
+        device.scheduleEvent(bang);
+
     });
+
+    pauseButton.addEventListener("click", () =>{
+        const pause = new MessageEvent(TimeNow, "in2", [0]);
+        device.scheduleEvent(pause);
+    });
+
+    stopButton.addEventListener("click", () =>{
+        const stop = new MessageEvent(TimeNow, "in3", [1]);
+        device.scheduleEvent(stop);
+        
+    });
+    
+    device.node.connect(context.destination);
 
 }
 
