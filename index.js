@@ -17,19 +17,16 @@ const setup = async () => {
 
     makeSliders(device);
 
-    //loading dependencies
-    let dependencies = await fetch("export/dependencies.json");
-    dependencies = await dependencies.json();
+   //load audio to buffer
+   const fileResponse = await fetch("media/sean-excitarse.wav");
+   const arrayBuf = await fileResponse.arrayBuffer();
 
-    // Load the dependencies into the device
-    const results = await device.loadDataBufferDependencies(dependencies);
-    results.forEach(result => {
-    if (result.type === "success") {
-        console.log(`Successfully loaded buffer with id ${result.id}`);
-    } else {
-        console.log(`Failed to load buffer with id ${result.id}, ${result.error}`);
-    }
-    });
+   //decode audio
+   const audioBuf = await context.decodeAudioData(arrayBuf);
+
+   //load audio to max buffer~
+   await device.setDataBuffer("sean", audioBuf);
+
 
     document.body.onclick = () => {
         context.resume();
