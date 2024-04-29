@@ -1,6 +1,10 @@
 // get createDevice from CDN
 const { createDevice, TimeNow, MessageEvent }  = RNBO;
 
+const SAMPLES = {"sean": "media/sean-excitarse.wav"};
+let audioRate = 1.0;
+let samplePos = 0;
+let lastSamplePos = 0;
 
 //create the AudioContext
 let WAContext = window.AudioContext || window.webkitAudioContext;
@@ -17,33 +21,32 @@ const setup = async () => {
 
     makeSliders(device);
 
-   //load audio to buffer
-   const fileResponse = await fetch("media/sean-excitarse.wav");
-   const arrayBuf = await fileResponse.arrayBuffer();
+    await loadSamples(device);
 
-   //decode audio
-   const audioBuf = await context.decodeAudioData(arrayBuf);
+    device.MessageEvent.subscribe((ev) => {
+        if (ev.tag === "out3"){
+            samplePos = ev.payload;
+        }
 
-   //load audio to max buffer~
-   await device.setDataBuffer("sean", audioBuf);
-
+    });
 
     document.body.onclick = () => {
-        context.resume();
-        
+        context.resume(); 
     }
-
-    const play = new MessageEvent(TimeNow, "in2", [1]);
-    const bang = new MessageEvent(TimeNow, "in1", [1]);
-    device.scheduleEvent(play);
-    device.scheduleEvent(bang);
 
     let startButton = document.getElementById("start");
     let pauseButton = document.getElementById("pause");
     let stopButton = document.getElementById("stop");
 
+    addButtonListener(device, startButton,pauseButton,stopButton);
+    
+    device.node.connect(context.destination);
+
+}
+
+function addButtonListener(device, startButton, pauseButton, stopButton){
     startButton.addEventListener("click", () =>{
-        const play = new MessageEvent(TimeNow, "in2", [1]);
+        const play = new MessageEvent(TimeNow, "in2", [audioRate]);
         const bang = new MessageEvent(TimeNow, "in1", [1]);
         device.scheduleEvent(play);
         device.scheduleEvent(bang);
@@ -51,17 +54,45 @@ const setup = async () => {
     });
 
     pauseButton.addEventListener("click", () =>{
-        const pause = new MessageEvent(TimeNow, "in2", [0]);
+        audioRate = device.parametersById.get("rate").value;
+        lastSamplePos = samplePos;
+        const pause = new MessageEvent(TimeNow, "in3", [1]);
         device.scheduleEvent(pause);
     });
 
     stopButton.addEventListener("click", () =>{
         const stop = new MessageEvent(TimeNow, "in3", [1]);
         device.scheduleEvent(stop);
+        lastSamplePos = 0;
         
     });
-    
-    device.node.connect(context.destination);
+}
+
+async function loadSamples(device){
+    for (let id in SAMPLES){
+        const url = SAMPLES[id];
+        await loadSample(url,id,device);
+    }
+    enableButtons();
+}
+
+function enableButtons(){
+    let buttons = document.querySelectorAll("button");
+
+    for (let button of buttons){
+        button.removeAttribute("disabled");
+    }
+}
+
+async function loadSample(url,id,device){
+    //load audio to buffer
+   const fileResponse = await fetch(url);
+   const arrayBuf = await fileResponse.arrayBuffer();
+
+   //decode audio
+   const audioBuf = await context.decodeAudioData(arrayBuf);
+   await device.setDataBuffer(id,audioBuf);
+   
 
 }
 
@@ -159,4 +190,4 @@ function makeSliders(device) {
     });
 }
 
-setup();
+window.addEventListener("load",setup,false);
