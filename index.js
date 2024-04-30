@@ -2,9 +2,6 @@
 const { createDevice, TimeNow, MessageEvent }  = RNBO;
 
 const SAMPLES = {"sean": "media/sean-excitarse.wav"};
-let audioRate = 1.0;
-let samplePos = 0;
-let lastSamplePos = 0;
 
 //create the AudioContext
 let WAContext = window.AudioContext || window.webkitAudioContext;
@@ -23,7 +20,7 @@ const setup = async () => {
 
     await loadSamples(device);
 
-    device.MessageEvent.subscribe((ev) => {
+    device.messageEvent.subscribe((ev) => {
         if (ev.tag === "out3"){
             samplePos = ev.payload;
         }
@@ -46,25 +43,18 @@ const setup = async () => {
 
 function addButtonListener(device, startButton, pauseButton, stopButton){
     startButton.addEventListener("click", () =>{
-        const play = new MessageEvent(TimeNow, "in2", [audioRate]);
-        const bang = new MessageEvent(TimeNow, "in1", [1]);
+        const play = new MessageEvent(TimeNow, "in1", [1]);
         device.scheduleEvent(play);
-        device.scheduleEvent(bang);
-
     });
 
     pauseButton.addEventListener("click", () =>{
-        audioRate = device.parametersById.get("rate").value;
-        lastSamplePos = samplePos;
-        const pause = new MessageEvent(TimeNow, "in3", [1]);
+        const pause = new MessageEvent(TimeNow, "in2", [1]);
         device.scheduleEvent(pause);
     });
 
     stopButton.addEventListener("click", () =>{
         const stop = new MessageEvent(TimeNow, "in3", [1]);
-        device.scheduleEvent(stop);
-        lastSamplePos = 0;
-        
+        device.scheduleEvent(stop);   
     });
 }
 
